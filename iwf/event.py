@@ -9,17 +9,11 @@ class Event(object):
     def __init__(self, keywords=[], *args):
         self.keywords = keywords
 
-    def _craft_url(
-        self,
-        new_or_old=None,
-        year=None,
-        nation=None,
-        event_type=None,
-        age_group=None,
-    ):
-
+    @staticmethod
+    def _craft_url(old_bw_cat=False, year=None, nation=None, event_type=None, age_group=None) -> str:
+        """Generates the URL required to pull the """
         filters = []
-        if new_or_old == "old":
+        if old_bw_cat:
             search_url = eBase.URL + eEvents.OLD_BW_URL
         else:
             search_url = eBase.URL + eEvents.URL
@@ -41,44 +35,27 @@ class Event(object):
             search_url += "/?" + filters[0]
             for i in range(1, len(filters)):
                 search_url += "&" + filters[i]
-        print(search_url)
         return search_url
 
-    def _load_event_page(
-        self,
-        search_url=None,
-        new_or_old=None,
-        year=None,
-        nation=None,
-        event_type=None,
-        age_group=None,
-    ):
-
+    def __load_event_page(self, search_url=None, old_bw_cat=False, year=None, nation=None, event_type=None,
+                          age_group=None) -> BeautifulSoup:
+        """Loads the event page results"""
         if search_url and is_event(search_url):
             r = requests.get(search_url, headers=eHeaders.PAYLOAD)
         else:
-            new_url = self._craft_url(
-                new_or_old,
-                year,
-                nation,
-                event_type,
-                age_group,
-            )
+            new_url = self._craft_url(old_bw_cat, year, nation, event_type, age_group)
             r = requests.get(new_url, headers=eHeaders.PAYLOAD)
 
         html = r.text
         return BeautifulSoup(html, "lxml")
 
-    def _scrape_event_info(self, soup_data):
+    @staticmethod
+    def __scrape_event_info(soup_data) -> list[dict]:
+        """Parses page data into a list of dicts"""
         result = []
         cards = soup_data.findAll("a", {"class": "card"})
         for card in cards:
-            data = {
-                "name": None,  # string
-                "result_url": None,  # string
-                "location": None,  # string
-                "date": None,  # string
-            }
+            data = {}
             data["name"] = card.find("span", {"class": "text"}).string
             data["result_url"] = card["href"]
             data["location"] = card.find("strong").string
@@ -86,19 +63,10 @@ class Event(object):
             result.append(data)
         return result
 
-    def get_events(
-        self,
-        search_url=None,
-        year=None,
-        new_or_old=None,
-        nation=None,
-        event_type=None,
-        age_group=None,
-    ):
-        result_data = self._scrape_event_info(
-            self._load_event_page(
-                search_url, new_or_old, year, nation, event_type, age_group
-            )
-        )
+    def get_events(self, search_url=None, year=None, old_bw_cat=False, nation=None, event_type=None,
+                   age_group=None) -> list[dict]:
+        """Fetches events list based upon the specified filters"""
+        event_page_data = self.__load_event_page(search_url, old_bw_cat, year, nation, event_type, age_group)
+        result_data = self.__scrape_event_info(event_page_data)
         if result_data:
             return result_data
