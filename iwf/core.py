@@ -4,6 +4,15 @@ from enum import Enum
 from bs4 import BeautifulSoup
 
 
+class eCatYears(int, Enum):
+    """
+    Bodyweight categories switched over in 2018 and results from 1998 onwards are available
+    """
+    NEW_BW_CAT = 2019
+    MIXED_CAT_YEAR = 2018
+    OLD_BW_CAT = 2017
+
+
 class eBase(str, Enum):
     """
     Stores the base URL

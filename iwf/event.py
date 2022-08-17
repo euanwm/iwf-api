@@ -1,8 +1,10 @@
+from typing import Union
+
 import requests
 
 from bs4 import BeautifulSoup
 
-from .core import eBase, eHeaders, eEvents, is_event
+from .core import eBase, eHeaders, eEvents, is_event, eCatYears
 
 
 class Event(object):
@@ -11,7 +13,7 @@ class Event(object):
 
     @staticmethod
     def _craft_url(old_bw_cat=False, year=None, nation=None, event_type=None, age_group=None) -> str:
-        """Generates the URL required to pull the """
+        """Generates the URL required to pull the events list"""
         filters = []
         if old_bw_cat:
             search_url = eBase.URL + eEvents.OLD_BW_URL
@@ -68,5 +70,23 @@ class Event(object):
         """Fetches events list based upon the specified filters"""
         event_page_data = self.__load_event_page(search_url, old_bw_cat, year, nation, event_type, age_group)
         result_data = self.__scrape_event_info(event_page_data)
+        if result_data:
+            return result_data
+
+    def get_events_by_year(self, year: Union[int, str]) -> list[dict]:
+        """Simplified function to fetch results by year"""
+        if int(year) <= eCatYears.OLD_BW_CAT:
+            event_page_data = self.__load_event_page(year=str(year), old_bw_cat=True)
+            result_data = self.__scrape_event_info(event_page_data)
+        elif int(year) >= eCatYears.NEW_BW_CAT:
+            event_page_data = self.__load_event_page(year=str(year), old_bw_cat=True)
+            result_data = self.__scrape_event_info(event_page_data)
+        elif int(year) == eCatYears.MIXED_CAT_YEAR:
+            old_bw_event_page_data = self.__load_event_page(year=str(year), old_bw_cat=True)
+            old_bw_result_data = self.__scrape_event_info(old_bw_event_page_data)
+            event_page_data = self.__load_event_page(year=str(year), old_bw_cat=False)
+            result_data = self.__scrape_event_info(event_page_data)
+            combined_data = old_bw_result_data + result_data
+            return combined_data
         if result_data:
             return result_data
